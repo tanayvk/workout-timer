@@ -83,7 +83,7 @@ const totalTime = computed(() => {
   <div>
     <div ref="sortableRef">
       <div
-        class="z-0 draggable mb-2"
+        class="z-0 draggable mb-4 md:mb-2"
         :data-id="exercise.id"
         :data-index="idx"
         :key="exercise.id"
@@ -95,17 +95,20 @@ const totalTime = computed(() => {
             variant="ghost"
             icon="i-heroicons-bars-3-solid"
           />
-          <UInput
-            v-model="exercise.title"
-            placeholder="describe the exercise..."
-            class="flex-grow"
-            @input="update(idx)"
-          />
-          <UInput
-            @input="update(idx)"
-            v-model="exercise.time"
-            placeholder="time in seconds"
-          />
+          <div class="grid grid-cols-3 flex-grow gap-1">
+            <UInput
+              v-model="exercise.title"
+              placeholder="describe the exercise..."
+              class="col-span-3 md:col-span-2"
+              @input="update(idx)"
+            />
+            <UInput
+              class="col-span-3 md:col-span-1"
+              @input="update(idx)"
+              v-model="exercise.time"
+              placeholder="time in seconds"
+            />
+          </div>
           <UTooltip
             :popper="{ placement: 'right', arrow: true }"
             text="Mark done automatically"
