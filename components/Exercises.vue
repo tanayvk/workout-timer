@@ -3,7 +3,6 @@ import { Sortable } from "@shopify/draggable";
 import { nextTick } from "vue";
 const { workout } = defineProps(["workout"]);
 const exercises = ref(workout.exercises);
-console.log("here", workout.exercises);
 const adding = ref(false);
 async function add() {
   adding.value = true;
@@ -22,18 +21,22 @@ function remove(index) {
   exercises.value.splice(index, 1);
   deleteExercise(id);
 }
-const debouncedUpdateExercise = debounce(async (index) => {
-  const exercise = exercises.value[index];
-  console.log("updating", exercise);
-  await updateExercise(
-    exercise.id,
-    exercise.title,
-    exercise.time,
-    exercise.autoDone,
+const debouncedUpdateExercise = (index) =>
+  debounce(
+    async () => {
+      const exercise = exercises.value[index];
+      await updateExercise(
+        exercise.id,
+        exercise.title,
+        exercise.time,
+        exercise.autoDone,
+      );
+    },
+    500,
+    index,
   );
-}, 500);
 function update(index) {
-  debouncedUpdateExercise(index);
+  debouncedUpdateExercise(index)();
 }
 const sortableRef = ref(null);
 const sortable = ref(null);
