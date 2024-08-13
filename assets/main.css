@@ -1,0 +1,12 @@
+body {
+  font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+.draggable-mirror {
+  z-index: 100;
+}
+
+.draggable-source--is-dragging {
+  opacity: 0.5;
+}
