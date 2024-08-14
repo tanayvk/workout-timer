@@ -22,6 +22,7 @@ const showTime = computed(() => {
 });
 
 function updateTimer() {
+  if (showCongrats.value) return;
   if (eventLog.value.length) {
     elapsedTime.value = getTimerString(
       new Date().getTime() - eventLog.value[0].time,
@@ -177,7 +178,7 @@ defineShortcuts({
           <span>{{ curExercise.title }}</span>
         </div>
         <UBadge
-          :color="curExercise.time > 0 && timer < 0 ? 'red' : 'primary'"
+          :color="curExercise.time > 0 && timer < -500 ? 'red' : 'primary'"
           variant="subtle"
           size="xl"
           class="select-none px-4 text-timer-sm md:text-timer font-timer"
@@ -237,7 +238,7 @@ defineShortcuts({
       </template>
     </UCard>
   </UModal>
-  <UModal v-model="showCongrats">
+  <UModal v-model="showCongrats" :prevent-close="true">
     <UCard>
       <template #header>
         <div class="flex items-center gap-2">
