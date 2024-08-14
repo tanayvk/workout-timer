@@ -4,11 +4,11 @@
       <nav class="w-full h-12 flex justify-between items-center px-1">
         <div></div>
         <div class="space-x-1">
-          <UButton
-            color="gray"
-            variant="ghost"
-            icon="i-heroicons-cog-8-tooth"
-          />
+          <!-- <UButton -->
+          <!--   color="gray" -->
+          <!--   variant="ghost" -->
+          <!--   icon="i-heroicons-cog-8-tooth" -->
+          <!-- /> -->
           <DarkModeSwitch />
         </div>
       </nav>
