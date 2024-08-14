@@ -12,9 +12,7 @@
           <DarkModeSwitch />
         </div>
       </nav>
-      <ClientOnly>
-        <slot />
-      </ClientOnly>
+      <slot />
     </div>
     <footer
       class="flex flex-col md:flex-row md:justify-between items-center pt-4 pb-2 px-2 gap-1"

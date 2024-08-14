@@ -9,7 +9,7 @@ onMounted(init);
 async function createWorkout() {
   creatingWorkout.value = true;
   const id = await createNewWorkout();
-  useRouter().push(`/workouts/${id}`);
+  useRouter().push(`/workouts/${id}?new=1`);
   creatingWorkout.value = false;
 }
 

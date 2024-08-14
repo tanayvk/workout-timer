@@ -1,6 +1,9 @@
 <script setup>
+const route = useRoute();
+const router = useRouter();
+
 const workout = ref(null);
-const editingTitle = ref(false);
+const editingTitle = ref(route.query.new ? true : false);
 const deleting = ref(false);
 const showDeleteConfirm = ref(false);
 const id = useRoute().params.id[0];
@@ -8,6 +11,7 @@ const id = useRoute().params.id[0];
 onMounted(async () => {
   workout.value = await getWorkout(id);
   if (!workout.value) navigateTo("/");
+  router.replace({ ...route.query, new: undefined });
 });
 
 function editTitle() {
@@ -24,8 +28,6 @@ async function deleteWorkout() {
   navigateTo("/");
 }
 
-const route = useRoute();
-const router = useRouter();
 const tabs = [
   { label: "Exercises", icon: "i-ic-directions-run" },
   { label: "Logs", icon: "i-heroicons-clipboard-document-list" },

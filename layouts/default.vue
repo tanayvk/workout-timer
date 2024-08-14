@@ -1,5 +1,3 @@
 <template>
-  <ClientOnly>
-    <slot />
-  </ClientOnly>
+  <slot />
 </template>
