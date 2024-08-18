@@ -21,7 +21,27 @@ const showTime = computed(() => {
   return getTimerString(timer.value, true);
 });
 
+const beepSound = new Audio("/beep.wav");
+const doneSound = new Audio("/done.wav");
+const beeps = [
+  { time: 0, sound: doneSound },
+  { time: 1000, sound: beepSound },
+  { time: 2000, sound: beepSound },
+  { time: 3000, sound: beepSound },
+];
+const beepRefs = {};
+for (const beep of beeps) {
+  beepRefs[beep.time] = ref(false);
+}
+
 function updateTimer() {
+  for (const beep of beeps) {
+    if (timer.value > beep.time) beepRefs[beep.time].value = true;
+    else if (timer.value <= beep.time && beepRefs[beep.time].value) {
+      beepRefs[beep.time].value = false;
+      beep.sound.play();
+    }
+  }
   if (showCongrats.value) return;
   if (eventLog.value.length) {
     elapsedTime.value = getTimerString(
