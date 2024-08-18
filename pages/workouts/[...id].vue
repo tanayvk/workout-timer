@@ -70,11 +70,8 @@ definePageMeta({
   />
   <UContainer>
     <UCard class="mt-10">
-      <template #header>
-        <div
-          v-if="workout"
-          class="flex flex-col md:flex-row md:justify-between"
-        >
+      <template v-if="workout" #header>
+        <div class="flex flex-col md:flex-row md:justify-between">
           <div class="flex items-center mb-3 md:mb-0">
             <UInput
               @blur="stopEditTitle"
@@ -128,17 +125,6 @@ definePageMeta({
     </UCard>
   </UContainer>
   <UModal v-model="showDeleteConfirm">
-    <!-- <UAlert -->
-    <!--   variant="outline" -->
-    <!--   color="white" -->
-    <!--   icon="i-heroicons-trash" -->
-    <!--   title="Delete Workout" -->
-    <!--   description="Are you sure you want to delete this workout?" -->
-    <!--   :actions="[ -->
-    <!--     { label: 'Yes', color: 'red', variant: 'solid' }, -->
-    <!--     { label: 'No', color: 'white', variant: 'ghost' }, -->
-    <!--   ]" -->
-    <!-- /> -->
     <UCard>
       <template #header>
         <div class="flex items-center gap-2 text-red-400">

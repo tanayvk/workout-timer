@@ -1,6 +1,5 @@
 <script setup>
 import { Sortable } from "@shopify/draggable";
-import { nextTick } from "vue";
 const { workout } = defineProps(["workout"]);
 const exercises = ref(workout.exercises);
 const adding = ref(false);

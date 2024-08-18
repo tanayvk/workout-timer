@@ -6,7 +6,7 @@ let sqlite, db: any;
 let resolves: Function[] = [];
 
 export const updatedAtTrigger = (tableName: string) => `
-CREATE TRIGGER ${tableName}_update
+CREATE TRIGGER IF NOT EXISTS ${tableName}_update
     AFTER UPDATE
     ON ${tableName}
     FOR EACH ROW
@@ -19,6 +19,7 @@ END;
 export const createTable = async (
   tableName: string,
   columns: string,
+  crr = true,
   constraints = "",
 ) => {
   await db.exec(
@@ -28,7 +29,16 @@ export const createTable = async (
      })`,
   );
   await db.exec(updatedAtTrigger(tableName));
-  await db.exec(`SELECT crsql_as_crr('${tableName}')`);
+  if (crr) await db.exec(`SELECT crsql_as_crr('${tableName}')`);
+};
+
+export const createIndex = async (
+  tableName: string,
+  indexName: string,
+  fields: string,
+) => {
+  await db.exec(`CREATE INDEX IF NOT EXISTS idx_${tableName}_${indexName}
+                 ON ${tableName} (${fields})`);
 };
 
 const cascadeDelete = (
@@ -43,7 +53,8 @@ REFERENCES ${refTable}(${refCol})
 ${cascadeDelete ? "ON DELETE CASCADE" : ""}`;
 
 const migrations = [
-  async function createTables() {
+  async function first() {
+    await db.exec("PRAGMA recursive_triggers = 1");
     await createTable("workout", "title");
     await createTable(
       "exercise",
@@ -60,30 +71,37 @@ const migrations = [
       "SELECT crsql_fract_as_ordered('exercise', 'ordering', 'workout')",
     );
   },
+  async function second() {
+    await createTable("peer", "name, version", false);
+    await createTable("device", "name", false);
+    await db.exec("INSERT INTO device (id, name) VALUES (1, 'Device Name')");
+    await createIndex("exercise", "by_workout", "workout, ordering");
+    await createIndex("log", "by_workout", "workout, created_at");
+  },
 ];
 
 const runMigrations = async () => {
   let [{ user_version } = { user_version: 0 }] = await db.execO(
     "PRAGMA user_version",
   );
-  user_version ||= 0;
   while (user_version < migrations.length) {
-    await migrations[0]?.();
+    await migrations[user_version]?.();
     user_version++;
     await db.exec(`PRAGMA user_version = ${user_version}`);
   }
 };
 
-export const init = async () => {
+export const clean = async () => {
+  const databases = await indexedDB.databases();
+  for (const database of databases) {
+    indexedDB.deleteDatabase(database.name as string);
+  }
+};
+
+export const dbInit = async () => {
   sqlite = await initWasm(() => wasmUrl);
   db = await sqlite.open("my-database.db");
-  await db.exec("PRAGMA recursive_triggers = 1");
-  //   await db.exec("PRAGMA user_version = 0"); // TODO: remove after testing
-  //   await db.exec(`
-  // PRAGMA writable_schema = 1;
-  // delete from sqlite_master where type in ('table', 'index', 'trigger');
-  // PRAGMA writable_schema = 0;
-  //     `);
+  // await clean();
   await runMigrations();
   resolves.forEach((res) => res(db));
 };
@@ -95,7 +113,7 @@ export const getDB = () => {
 
 export const getWorkouts = async () => {
   const db = await getDB();
-  return await db.execO("SELECT * FROM workout");
+  return await db.execO("SELECT * FROM workout ORDER BY created_at");
 };
 
 export const createNewWorkout = async () => {
@@ -106,12 +124,14 @@ export const createNewWorkout = async () => {
     "New Workout",
   ]);
   await addExercise(id);
+  updateWorkouts();
   return id;
 };
 
 export const updateWorkoutTitle = async (id: string, title: string) => {
   const db = await getDB();
   await db.exec(`UPDATE workout SET title = ? WHERE id = ?`, [title, id]);
+  updateWorkouts();
 };
 
 export const getWorkout = async (id: string) => {
@@ -145,6 +165,7 @@ export const getWorkout = async (id: string) => {
 export const deleteWorkoutByID = async (id: string) => {
   const db = getDB();
   await db.exec("DELETE FROM workout WHERE id = ?", [id]);
+  updateWorkouts();
 };
 
 export const addExercise = async (workout: string) => {
@@ -212,11 +233,99 @@ export const addLog = async (workout: string, data: any, time: number) => {
 
 export const getLogs = async (workout: string) => {
   const db = await getDB();
-  const logs = await db.execO("SELECT * FROM log WHERE workout = ?", [workout]);
+  const logs = await db.execO(
+    "SELECT * FROM log WHERE workout = ? ORDER BY created_at",
+    [workout],
+  );
   for (const log of logs) {
     try {
       if (log.data) log.data = JSON.parse(log.data);
     } catch {}
   }
   return logs;
+};
+
+export const getSiteId = async () => {
+  const db = await getDB();
+  const [{ site_id }] = await db.execO(
+    "SELECT hex(crsql_site_id()) AS site_id",
+  );
+  return site_id;
+};
+
+export const getPeers = async () => {
+  const db = await getDB();
+  const peers = await db.execO("SELECT id, name FROM peer");
+  return peers;
+};
+
+export const getChanges = async (version: any) => {
+  const db = await getDB();
+  const changes = await db.execA(
+    "SELECT * FROM crsql_changes WHERE db_version > ? AND site_id = crsql_site_id()",
+    [version],
+  );
+  return changes;
+};
+
+export const applyChanges = async (id: string, changes: any[]) => {
+  if (changes.length === 0) return;
+  const db = await getDB();
+  let maxVersion = 0;
+  await db.tx(async (tx: any) => {
+    for (const change of changes) {
+      maxVersion = Math.max(maxVersion, change[5]);
+      await tx.exec(
+        "INSERT INTO crsql_changes VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        change.map((c: any) => {
+          if (typeof c === "object") return new Uint8Array(c);
+          return c;
+        }),
+      );
+    }
+    await tx.exec(
+      `INSERT INTO peer (id, version) VALUES (?, ?)
+         ON CONFLICT DO UPDATE SET version = excluded.version`,
+      [id, maxVersion],
+    );
+  });
+  updateWorkouts();
+};
+
+export const getVersion = async (id: string) => {
+  const db = await getDB();
+  const [{ version } = { version: null }] = await db.execO(
+    "SELECT version FROM peer WHERE id = ?",
+    [id],
+  );
+  return version || 0;
+};
+
+export const addOrUpdatePeer = async (id: string, update: any) => {
+  const db = await getDB();
+  const keys = Object.keys(update);
+  const values = Object.values(update);
+  await db.exec(
+    `INSERT INTO peer (id${
+      keys.length ? "," + keys.join(",") : ""
+    }) VALUES (${Array.from(new Array(1 + keys.length))
+      .map((_) => "?")
+      .join(",")})
+      ${keys.length ? "ON CONFLICT DO UPDATE SET" : ""} ${keys
+        .map((k) => `${k} = excluded.${k}`)
+        .join(",")}`,
+    [id, ...values],
+  );
+  usePeers().value = await getPeers();
+};
+
+export const getDeviceName = async () => {
+  const db = await getDB();
+  const [{ name }] = await db.execO("SELECT name FROM device");
+  return name;
+};
+
+export const updateDeviceName = async (name: string) => {
+  const db = await getDB();
+  await db.exec("UPDATE device SET name = ?", [name]);
 };

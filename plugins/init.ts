@@ -1,7 +1,9 @@
 export default defineNuxtPlugin({
   hooks: {
     "app:beforeMount"() {
-      init().then(() => {
+      dbInit().then(() => {
+        updateWorkouts();
+        peerInit();
         const ready = useDBReady();
         ready.value = true;
       });

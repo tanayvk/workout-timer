@@ -1,14 +1,18 @@
+<script setup>
+const openSync = ref(false);
+</script>
 <template>
   <div class="h-screen flex flex-col justify-between">
     <div>
       <nav class="w-full h-12 flex justify-between items-center px-1">
         <div></div>
         <div class="space-x-1">
-          <!-- <UButton -->
-          <!--   color="gray" -->
-          <!--   variant="ghost" -->
-          <!--   icon="i-heroicons-cog-8-tooth" -->
-          <!-- /> -->
+          <UButton
+            color="gray"
+            variant="ghost"
+            icon="i-heroicons-arrow-path"
+            @click="openSync = true"
+          />
           <DarkModeSwitch />
         </div>
       </nav>
@@ -48,5 +52,6 @@
         />
       </div>
     </footer>
+    <UModal v-model="openSync"><Sync /> </UModal>
   </div>
 </template>

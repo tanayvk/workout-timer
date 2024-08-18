@@ -2,7 +2,13 @@
 export default defineNuxtConfig({
   compatibilityDate: "2024-04-03",
   devtools: { enabled: true },
-  modules: ["@nuxt/ui", "@nuxt/fonts", "@vite-pwa/nuxt", "nuxt-gtag"],
+  modules: [
+    "@nuxt/ui",
+    "@nuxt/fonts",
+    "@vite-pwa/nuxt",
+    "nuxt-gtag",
+    "@pinia/nuxt",
+  ],
   fonts: {
     families: [
       { name: "Montserrat", provider: "google" },
@@ -51,6 +57,7 @@ export default defineNuxtConfig({
       ],
     },
     workbox: {
+      cleanupOutdatedCaches: true,
       globPatterns: ["/", "**/*.{mjs,js,css,html,png,svg,ico}"],
     },
     injectManifest: {
