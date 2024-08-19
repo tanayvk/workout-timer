@@ -255,26 +255,42 @@ export const getSiteId = async () => {
 
 export const getPeers = async () => {
   const db = await getDB();
-  const peers = await db.execO("SELECT id, name FROM peer");
+  const peers = await db.execO("SELECT id, name, version FROM peer");
   return peers;
 };
 
-export const getChanges = async (version: any) => {
+export const getChanges = async (peers: any[]) => {
   const db = await getDB();
-  const changes = await db.execA(
-    "SELECT * FROM crsql_changes WHERE db_version > ? AND site_id = crsql_site_id()",
-    [version],
-  );
-  return changes;
+  const changes = [];
+  for (const peer of peers) {
+    changes.push(
+      await db.execA(
+        "SELECT * FROM crsql_changes WHERE db_version > ? AND hex(site_id) = ?",
+        [peer.version || 0, peer.id],
+      ),
+    );
+  }
+  return changes.flat();
 };
 
-export const applyChanges = async (id: string, changes: any[]) => {
+export const applyChanges = async (changes: any[]) => {
   if (changes.length === 0) return;
   const db = await getDB();
-  let maxVersion = 0;
+  const siteId = await getSiteId();
+  const maxVersions: Record<string, number> = {};
   await db.tx(async (tx: any) => {
     for (const change of changes) {
-      maxVersion = Math.max(maxVersion, change[5]);
+      const changeSite = [...new Uint8Array(change[6])]
+        .map((x) => x.toString(16).padStart(2, "0"))
+        .join("")
+        .toUpperCase();
+      if (siteId === changeSite) {
+        continue;
+      }
+      maxVersions[changeSite] = Math.max(
+        maxVersions[changeSite] || 0,
+        change[5],
+      );
       await tx.exec(
         "INSERT INTO crsql_changes VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         change.map((c: any) => {
@@ -283,11 +299,13 @@ export const applyChanges = async (id: string, changes: any[]) => {
         }),
       );
     }
-    await tx.exec(
-      `INSERT INTO peer (id, version) VALUES (?, ?)
-         ON CONFLICT DO UPDATE SET version = excluded.version`,
-      [id, maxVersion],
-    );
+    for (const [peer, version] of Object.entries(maxVersions)) {
+      await tx.exec(
+        `INSERT INTO peer (id, version) VALUES (?, ?)
+         ON CONFLICT DO UPDATE SET version = MAX(IFNULL(version, 0), excluded.version)`,
+        [peer, version],
+      );
+    }
   });
   updateWorkouts();
 };

@@ -35,13 +35,6 @@ for (const beep of beeps) {
 }
 
 function updateTimer() {
-  for (const beep of beeps) {
-    if (timer.value > beep.time) beepRefs[beep.time].value = true;
-    else if (timer.value <= beep.time && beepRefs[beep.time].value) {
-      beepRefs[beep.time].value = false;
-      beep.sound.play();
-    }
-  }
   if (showCongrats.value) return;
   if (eventLog.value.length) {
     elapsedTime.value = getTimerString(
@@ -50,6 +43,13 @@ function updateTimer() {
   }
   if (isPaused.value) return;
   timer.value = remainingTime.value - (new Date().getTime() - startTime.value);
+  for (const beep of beeps) {
+    if (timer.value > beep.time) beepRefs[beep.time].value = true;
+    else if (timer.value <= beep.time && beepRefs[beep.time].value) {
+      beepRefs[beep.time].value = false;
+      beep.sound.play();
+    }
+  }
   if (timer.value < 0 && curExercise.value.autoDone) done();
 }
 

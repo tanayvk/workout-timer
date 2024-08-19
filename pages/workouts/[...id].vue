@@ -11,7 +11,7 @@ const id = useRoute().params.id[0];
 onMounted(async () => {
   workout.value = await getWorkout(id);
   if (!workout.value) navigateTo("/");
-  router.replace({ ...route.query, new: undefined });
+  router.replace({ query: { ...route.query, new: undefined } });
 });
 
 function editTitle() {

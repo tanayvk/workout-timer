@@ -3,14 +3,17 @@ import type { DataConnection } from "peerjs";
 
 type Data = {
   changes: any;
-  request: any;
+  peers: any[];
   name: string;
 };
 
 let peer: Peer,
-  connections: Record<string, DataConnection> = {};
+  connections: Record<string, DataConnection> = {},
+  siteId: string,
+  peers: any[],
+  peersSet = new Set();
 export const peerInit = async () => {
-  const siteId = await getSiteId();
+  siteId = await getSiteId();
   peer = new Peer(siteId);
   peer.on("open", () => {
     startBroadcast();
@@ -25,7 +28,7 @@ export const peerInit = async () => {
 };
 
 const broadcast = async () => {
-  const peers = await getPeers();
+  peers = await getPeers();
   for (const peer of peers) {
     syncPeer(peer.id);
   }
@@ -39,10 +42,11 @@ const startBroadcast = async () => {
 };
 
 export async function syncPeer(id: string) {
+  if (!peers) peers = await getPeers();
   const conn = await getConnection(id);
   if (conn) {
     conn.send({
-      request: { version: await getVersion(id) },
+      peers,
       name: await getDeviceName(),
     });
   }
@@ -69,11 +73,18 @@ const handleConnection = (conn: DataConnection): Promise<void> =>
     conn.on("data", async (d) => {
       const data = d as Data;
       if (data.changes) {
-        applyChanges(id, data.changes);
+        applyChanges(data.changes);
       }
-      if (data.request) {
+      if (data.peers) {
+        for (const peer of data.peers) {
+          if (peer.id !== siteId && !peersSet.has(peer.id)) {
+            peersSet.add(peer.id);
+            addOrUpdatePeer(peer.id, { name: peer.name });
+            syncPeer(peer.id);
+          }
+        }
         conn.send({
-          changes: await getChanges(data.request.version),
+          changes: await getChanges(data.peers),
         });
       }
       if (data.name) {

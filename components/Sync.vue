@@ -102,7 +102,7 @@ defineShortcuts({
           >Add Device</UButton
         >
       </div>
-      <div class="space-y-2 max-h-[400px] overflow-scroll">
+      <div class="space-y-2 max-h-[400px] overflow-auto">
         <div
           v-if="peers.length"
           v-for="peer in peers"
