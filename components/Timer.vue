@@ -13,8 +13,7 @@ const currExerciseIndex = ref(0),
   showCongrats = ref(false),
   confirmed = ref(false),
   showExit = ref(false),
-  interval = ref(null),
-  wakeLock = ref(null);
+  interval = ref(null);
 
 const curExercise = computed(() => exercises[currExerciseIndex.value]);
 const showTime = computed(() => {
@@ -51,7 +50,9 @@ function updateTimer() {
       beep.sound.play();
     }
   }
-  if (timer.value < 0 && curExercise.value.autoDone) done();
+  if (timer.value < 0 && curExercise.value.autoDone) {
+    done();
+  }
 }
 
 function pause() {
@@ -74,6 +75,7 @@ function resume() {
     });
     isPaused.value = false;
     startTime.value = new Date().getTime();
+    activateKeepAwake();
   }
 }
 
@@ -87,6 +89,10 @@ function log() {
 }
 
 function done() {
+  if (beepRefs[0].value) {
+    beepRefs[0].value = false;
+    doneSound.play();
+  }
   const event = {
     time: new Date().getTime(),
     type: "done",
@@ -117,16 +123,10 @@ async function exit() {
 
 onMounted(async () => {
   interval.value = setInterval(updateTimer, 50);
-  if ("wakeLock" in navigator) {
-    wakeLock.value = await navigator.wakeLock.request("screen");
-  }
 });
 onUnmounted(async () => {
-  if (wakeLock.value) {
-    await wakeLock.value.release();
-    wakeLock.value = null;
-  }
   clearInterval(interval.value);
+  deactivateKeepAwake();
 });
 
 watch([confirmed, addedLog], () => {
