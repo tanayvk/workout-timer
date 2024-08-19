@@ -13,7 +13,8 @@ const currExerciseIndex = ref(0),
   showCongrats = ref(false),
   confirmed = ref(false),
   showExit = ref(false),
-  interval = ref(null);
+  interval = ref(null),
+  wakeLock = ref(null);
 
 const curExercise = computed(() => exercises[currExerciseIndex.value]);
 const showTime = computed(() => {
@@ -114,10 +115,17 @@ async function exit() {
   log();
 }
 
-onMounted(() => {
+onMounted(async () => {
   interval.value = setInterval(updateTimer, 50);
+  if ("wakeLock" in navigator) {
+    wakeLock.value = await navigator.wakeLock.request("screen");
+  }
 });
-onUnmounted(() => {
+onUnmounted(async () => {
+  if (wakeLock.value) {
+    await wakeLock.value.release();
+    wakeLock.value = null;
+  }
   clearInterval(interval.value);
 });
 
