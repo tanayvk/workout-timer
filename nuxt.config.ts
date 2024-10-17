@@ -8,6 +8,7 @@ export default defineNuxtConfig({
     "@vite-pwa/nuxt",
     "nuxt-gtag",
     "@pinia/nuxt",
+    "@vueuse/nuxt",
   ],
   fonts: {
     families: [

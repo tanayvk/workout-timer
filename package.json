@@ -28,6 +28,8 @@
   "devDependencies": {
     "@iconify-json/fa6-brands": "^1.1.22",
     "@iconify-json/ic": "^1.1.18",
-    "@vite-pwa/assets-generator": "^0.2.4"
+    "@vite-pwa/assets-generator": "^0.2.4",
+    "@vueuse/core": "^11.1.0",
+    "@vueuse/nuxt": "^11.1.0"
   }
 }

@@ -1,6 +1,7 @@
 <script setup>
 const { workout } = defineProps(["workout"]);
 const { id, exercises } = workout;
+const { request: requestWakeLock, release: releaseWakeLock } = useWakeLock();
 
 const currExerciseIndex = ref(0),
   remainingTime = ref((exercises[0].time || 0) * 1000),
@@ -75,7 +76,7 @@ function resume() {
     });
     isPaused.value = false;
     startTime.value = new Date().getTime();
-    activateKeepAwake();
+    requestWakeLock();
   }
 }
 
@@ -126,7 +127,7 @@ onMounted(async () => {
 });
 onUnmounted(async () => {
   clearInterval(interval.value);
-  deactivateKeepAwake();
+  releaseWakeLock();
 });
 
 watch([confirmed, addedLog], () => {
